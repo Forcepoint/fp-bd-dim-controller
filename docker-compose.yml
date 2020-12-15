@@ -1,0 +1,86 @@
+version: '3.4'
+
+x-common-variables: &common-variables
+  MYSQL_DATABASE: dem-master
+  MYSQL_USER: dem-master
+  MYSQL_PASSWORD: master
+  HOST_DOMAIN: localhost
+  CONTROLLER_SVC_NAME: dim-controller
+  CONTROLLER_PORT: 8080
+  DEBUG_MODE: "false"
+  PROJECT_ROOT: 
+  DOCKER_USER: fp-dim-user
+  DOCKER_PASSWORD: BVQL7ABrFrCM8hk
+  DOCKER_REGISTRY: docker.frcpnt.com
+  DOCKER_PREFIX: docker.frcpnt.com/fp-dim/
+  MODULE_NETWORK_NAME: module-net
+  DB_BACKUP_DIR: /backups/
+  DB_BACKUP_FILE: dump.sql
+  DB_BACKUP_EMAIL: jim@forcepoint.com
+  DB_BACKUP_NAME: Jim Jimson
+  LOG_LEVEL: info
+  LOG_FILE: log.txt
+
+services:
+  mariadb:
+    image: mariadb:10.5.5
+    environment:
+      <<: *common-variables
+      MYSQL_ROOT_PASSWORD: master
+    restart: on-failure
+    volumes:
+      - ${PWD}/mariadb:/var/lib/mysql
+      - ${PWD}/backups:/backups
+    networks:
+      - db-net
+
+  dim-controller:
+    image: docker.frcpnt.com/fp-dim/dim-controller:latest
+    depends_on:
+      - mariadb
+    environment:
+      <<: *common-variables
+      JWT_SECRET_KEY: super-secret-key
+    restart: always
+    volumes:
+      - ${PWD}/config:/config
+      - ${PWD}/backups:/backups
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - controller-net
+      - module-net
+      - db-net
+
+  dim-ui:
+    image: docker.frcpnt.com/fp-dim/dim-ui:latest
+    environment: *common-variables
+    depends_on:
+      - dim-controller
+      - certbot
+    restart: always
+    volumes:
+      - ./data/nginx:/etc/nginx/conf.d
+      - ./data/certbot/conf:/etc/letsencrypt
+      - ./data/certbot/www:/var/www/certbot
+    ports:
+      - 80:80
+      - 443:443
+      - 9000:9000
+    networks:
+      - controller-net
+
+  certbot:
+    image: certbot/certbot:latest
+    environment:
+      HOST_DOMAIN: localhost
+    volumes:
+      - ./data/certbot/conf:/etc/letsencrypt
+      - ./data/certbot/www:/var/www/certbot
+
+networks:
+  controller-net:
+    driver: "bridge"
+  module-net:
+    driver: "bridge"
+  db-net:
+    driver: "bridge"
