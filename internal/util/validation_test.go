@@ -20,6 +20,14 @@ func (v *ValidationTestSuite) TestIPValidation() {
 	})
 
 	v.T().Run("Test valid IP", func(t *testing.T) {
+		assert.True(v.T(), IsIpValid("1.2.3.5"))
+	})
+
+	v.T().Run("Test valid IP", func(t *testing.T) {
+		assert.True(v.T(), IsIpValid("1.2.3.10"))
+	})
+
+	v.T().Run("Test valid IP", func(t *testing.T) {
 		assert.True(v.T(), IsIpValid("10.10.9.1"))
 	})
 

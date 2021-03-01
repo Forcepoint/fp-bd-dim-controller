@@ -7,8 +7,6 @@ import (
 	notificationfuncs "fp-dynamic-elements-manager-controller/internal/notification"
 	"fp-dynamic-elements-manager-controller/internal/queue/structs"
 	validation "fp-dynamic-elements-manager-controller/internal/util"
-	"github.com/gammazero/workerpool"
-	"github.com/rs/zerolog/log"
 	"github.com/thoas/go-funk"
 )
 
@@ -28,12 +26,12 @@ func AddOne(items []structs.ListElement, pusher Pusher, dao *persistence.DataAcc
 	}
 	res, err := dao.ElementBatchRepo.InsertBatchElement()
 	if err != nil {
-		log.Error().Err(err).Msg("Error inserting batch element in queue")
+		logger.SystemLogger.Error(err, "Error inserting batch element in queue")
 		return err
 	}
 	batchId, err := res.LastInsertId()
 	if err != nil {
-		log.Error().Err(err).Msg("Error retrieving last insert ID in queue")
+		logger.SystemLogger.Error(err, "Error retrieving last insert ID in queue")
 		return err
 	}
 	for i := range items {
@@ -41,12 +39,12 @@ func AddOne(items []structs.ListElement, pusher Pusher, dao *persistence.DataAcc
 	}
 	err = dao.ListElementRepo.InsertListElement(items[0])
 	go func() {
-		pusher.pushToModules()
+		pusher.push()
 	}()
 	return err
 }
 
-func AddToQueue(items []structs.ListElement, pusher Pusher, dao *persistence.DataAccessObject, wp *workerpool.WorkerPool, logger *structs2.AppLogger) {
+func AddToQueue(items []structs.ListElement, pusher Pusher, dao *persistence.DataAccessObject, logger *structs2.AppLogger) {
 	if len(items) == 0 {
 		return
 	}
@@ -70,7 +68,7 @@ func AddToQueue(items []structs.ListElement, pusher Pusher, dao *persistence.Dat
 		dao.ListElementRepo.BatchInsertListElements(chunk)
 	}
 	go func() {
-		pusher.pushToModules()
+		pusher.push()
 	}()
 }
 

@@ -193,10 +193,10 @@ func (l *ListElementRepo) GetAll() (receiver []structs.ListElement, err error) {
 	return
 }
 
-func (l *ListElementRepo) GetAllByBatchId(batchId int64, types []structs.ElementType, safe bool) (receiver []structs.ListElement, err error) {
-	smt := fmt.Sprintf("SELECT * FROM %s WHERE update_batch_id = ? AND type IN (?) AND safe = ? ORDER BY created_at DESC;", ElementsTable)
+func (l *ListElementRepo) GetAllByBatchId(batchId int64, types []structs.ElementType) (receiver []structs.ListElement, err error) {
+	smt := fmt.Sprintf("SELECT * FROM %s WHERE update_batch_id = ? AND type IN (?) ORDER BY created_at DESC;", ElementsTable)
 
-	query, args, err := sqlx.In(smt, batchId, types, safe)
+	query, args, err := sqlx.In(smt, batchId, types)
 
 	if err != nil {
 		l.log.SystemLogger.Error(err, "Error binding args to query")
@@ -238,9 +238,9 @@ func (l *ListElementRepo) GetLatestUpdate(svcName string) (receiver structs.List
 	return
 }
 
-func (l *ListElementRepo) GetUnpushedBatchIds(moduleId int64, types []structs.ElementType) (receiver []int64, err error) {
-	smt := fmt.Sprintf("SELECT DISTINCT(update_batch_id) FROM %s WHERE type IN (?) AND update_batch_id NOT IN (SELECT update_batch_id FROM update_statuses WHERE module_metadata_id = ?);", ElementsTable)
-	query, args, err := sqlx.In(smt, types, moduleId)
+func (l *ListElementRepo) GetUnpushedBatchIds(moduleId int64, safe bool, types []structs.ElementType) (receiver []int64, err error) {
+	smt := fmt.Sprintf("SELECT DISTINCT(update_batch_id) FROM %s WHERE type IN (?) AND safe = ? AND update_batch_id NOT IN (SELECT update_batch_id FROM update_statuses WHERE module_metadata_id = ?);", ElementsTable)
+	query, args, err := sqlx.In(smt, types, safe, moduleId)
 
 	if err != nil {
 		l.log.SystemLogger.Error(err, "Error binding args to query")
@@ -249,6 +249,7 @@ func (l *ListElementRepo) GetUnpushedBatchIds(moduleId int64, types []structs.El
 	query = l.db.Rebind(query)
 
 	err = l.db.Select(&receiver, query, args...)
+
 	return
 }
 

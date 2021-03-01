@@ -66,7 +66,6 @@ func NewServer(
 	dbReadyChan <-chan struct{},
 	dao *persistence.DataAccessObject,
 	pusher queuefuncs.Pusher,
-	wp *workerpool.WorkerPool,
 	handler *docker2.CommandHandler,
 	provider backup2.Provider,
 ) *server {
@@ -88,7 +87,6 @@ func NewServer(
 		ingressRouter:  ingressRouter,
 		dao:            dao,
 		pusher:         pusher,
-		wp:             wp,
 		handler:        handler,
 		provider:       provider,
 	}
@@ -130,7 +128,7 @@ func (s *server) StartServer() {
 	s.authRouter.Handle("/elements", elements.Handler(s.pusher, s.dao, s.logger))
 
 	s.internalRouter.Handle("/register", registration.Handler(s.addRoutesChan))
-	s.internalRouter.Handle("/queue", queue.Handler(s.pusher, s.dao, s.wp, s.logger))
+	s.internalRouter.Handle("/queue", queue.Handler(s.pusher, s.dao, s.logger))
 	s.internalRouter.Handle("/update", update.Handler(s.dao.UpdateStatusRepo))
 	s.internalRouter.Handle("/logevent", logging.Handler(s.dao.LogEntryRepo))
 

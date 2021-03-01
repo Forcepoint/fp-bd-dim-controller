@@ -81,8 +81,8 @@ func (u *UpdateStatusRepo) GetAll(receiver []structs.UpdateStatus) error {
 	return u.db.Select(&receiver, fmt.Sprintf("SELECT * FROM %s ORDER BY created_at DESC;", UpdateStatusTable))
 }
 
-func (u *UpdateStatusRepo) GetAllWithStatusForModule(status structs.Status, moduleId int64) (receiver []int64, err error) {
-	err = u.db.Select(&receiver, fmt.Sprintf("SELECT update_batch_id FROM %s WHERE status = ? AND module_metadata_id = ? ORDER BY created_at DESC;", UpdateStatusTable), status.String(), moduleId)
+func (u *UpdateStatusRepo) GetAllWithStatusForModule(status structs.Status, moduleId int64, safe bool) (receiver []int64, err error) {
+	err = u.db.Select(&receiver, fmt.Sprintf("SELECT update_batch_id FROM %s WHERE safe = ? status = ? AND module_metadata_id = ? ORDER BY created_at DESC;", UpdateStatusTable), safe, status.String(), moduleId)
 	return
 }
 

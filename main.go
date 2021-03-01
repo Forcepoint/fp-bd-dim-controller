@@ -13,7 +13,6 @@ import (
 	"fp-dynamic-elements-manager-controller/internal/logging/structs"
 	"fp-dynamic-elements-manager-controller/internal/notification"
 	"fp-dynamic-elements-manager-controller/internal/queue"
-	"github.com/gammazero/workerpool"
 	"github.com/sirupsen/logrus"
 	"os"
 )
@@ -53,10 +52,7 @@ func main() {
 	logrus.AddHook(logging.NewDatabaseHook(dao.LogEntryRepo))
 
 	// Set up the pushing mechanism which pushes list elements to all egress modules
-	pusher := queue.NewTableDataPusher(dao, logger)
-
-	// Set up a worker pool of goroutines
-	wp := workerpool.New(5)
+	pusher := queue.NewDataPusher(dao, logger)
 
 	// Set up the connection to the docker socket on the host machine using the Docker CLI
 	docker, err := docker2.NewDocker(
@@ -81,5 +77,5 @@ func main() {
 		dao.ListElementRepo)
 
 	// Set up and start our server
-	api.NewServer(logger, dbReadyChan, dao, pusher, wp, handler, provider).StartServer()
+	api.NewServer(logger, dbReadyChan, dao, pusher, handler, provider).StartServer()
 }

@@ -47,17 +47,16 @@ func (m *ModuleMetadataRepo) GetAllModuleMetadata() (receiver []structs.ModuleMe
 func (m *ModuleMetadataRepo) UpsertModuleMetadata(item structs.ModuleMetadata) {
 	now := time.Now()
 
-	smt := `INSERT INTO %s (
+	smt := fmt.Sprintf(`INSERT INTO %s (
 id, created_at, updated_at, deleted_at, module_service_name, module_display_name, module_type,
 module_description, inbound_route, internal_ip, internal_port, icon_url, configured, configurable,
 last_ping) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) 
 ON DUPLICATE KEY UPDATE updated_at = ?, module_description = ?, icon_url = ?, configured = ?, last_ping = ?
-`
+`, ModuleTable)
 
 	item.CreatedAt = now
 	item.UpdatedAt = now
 
-	smt = fmt.Sprintf(smt, ModuleTable)
 	tx, err := m.db.Begin()
 	if err != nil {
 		m.log.SystemLogger.Error(err, "Error starting transaction to upsert module metadata")
