@@ -131,6 +131,7 @@ func (s *server) StartServer() {
 	s.internalRouter.Handle("/queue", queue.Handler(s.pusher, s.dao, s.logger))
 	s.internalRouter.Handle("/update", update.Handler(s.dao.UpdateStatusRepo))
 	s.internalRouter.Handle("/logevent", logging.Handler(s.dao.LogEntryRepo))
+	s.internalRouter.Handle("/lookup", export.LookupHandler(s.dao.ListElementRepo))
 
 	s.startDynamicRouteHandler()
 

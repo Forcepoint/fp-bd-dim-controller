@@ -218,6 +218,11 @@ func (l *ListElementRepo) GetAllLike(offset, pageSize int, searchTerm string, sa
 	return
 }
 
+func (l *ListElementRepo) GetAllEquals(searchTerm string) (receiver structs.ListElement, err error) {
+	err = l.db.Get(&receiver, fmt.Sprintf("SELECT * FROM %s WHERE value = ?;", ElementsTable), searchTerm)
+	return
+}
+
 func (l *ListElementRepo) GetTotalCountWhereLike(safe bool, like string) (total int64, err error) {
 	err = l.db.Get(&total, fmt.Sprintf("SELECT count(1) FROM %s WHERE value LIKE ? AND safe = ?", ElementsTable), "%"+like+"%", safe)
 	return
