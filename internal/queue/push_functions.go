@@ -30,7 +30,7 @@ func NewDataPusher(dao *persistence.DataAccessObject, logger *structs3.AppLogger
 	}
 }
 
-func (t DataPusher) push() {
+func (t *DataPusher) push() {
 	// Enter function, get a list of all modules capable of consuming intelligence
 	modules, err := egressModules(t.dao.ModuleMetadataRepo)
 

@@ -38,7 +38,7 @@ func LookupHandler(repo *persistence.ListElementRepo) http.Handler {
 			w.WriteHeader(http.StatusNoContent)
 		case http.MethodGet:
 			values := r.URL.Query()
-			searchTerm := values.Get("key")
+			searchTerm := values.Get("query")
 			if searchTerm == "" {
 				util.ReturnHTTPStatus(w, http.StatusFailedDependency, "no search term provided")
 			}
