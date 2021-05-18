@@ -7,13 +7,14 @@ type ElementType string
 type Command string
 
 const (
-	PullAndStart Command = "pullstart"
-	Start        Command = "start"
-	Stop         Command = "stop"
-	Restart      Command = "restart"
-	Create       Command = "create"
-	Remove       Command = "remove"
-	List         Command = "list"
+	PullAndStart   Command = "pullstart"
+	PullAndRestart Command = "pullrestart"
+	Start          Command = "start"
+	Stop           Command = "stop"
+	Restart        Command = "restart"
+	Create         Command = "create"
+	Remove         Command = "remove"
+	List           Command = "list"
 
 	INGRESS    ModuleType = "ingress"
 	EGRESS     ModuleType = "egress"

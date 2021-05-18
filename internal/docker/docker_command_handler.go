@@ -113,6 +113,8 @@ func (c *CommandHandler) processCommand(container structs.ContainerDetails) erro
 	switch container.Command {
 	case structs.PullAndStart:
 		err = c.docker.PullAndStart(container.ImageRef, container.ID)
+	case structs.PullAndRestart:
+		err = c.docker.PullAndRestart(container.ImageRef, container.ID)
 	case structs.Create:
 		err = c.docker.Create(container.ImageRef, container.ID, container.Network, container.Volumes, container.EnvVars)
 	case structs.Stop:

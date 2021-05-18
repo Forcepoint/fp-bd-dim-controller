@@ -23,6 +23,7 @@ import (
 
 type Dockers interface {
 	PullAndStart(string, string) error
+	PullAndRestart(string, string) error
 	Create(string, string, string, []string, []string) error
 	Start(string) error
 	Stop(string) error
@@ -285,6 +286,24 @@ func (d *Docker) PullAndStart(imageRef, createdContainerName string) error {
 	}
 
 	if err := d.cli.ContainerStart(d.ctx, resp.ID, types.ContainerStartOptions{}); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (d *Docker) PullAndRestart(imageRef, containerName string) error {
+	out, err := d.cli.ImagePull(d.ctx, imageRef, types.ImagePullOptions{RegistryAuth: d.authString})
+	if err != nil {
+		return err
+	}
+
+	defer out.Close()
+	io.Copy(os.Stdout, out)
+
+	timeout := time.Second * 30
+
+	if err := d.cli.ContainerRestart(d.ctx, containerName, &timeout); err != nil {
 		return err
 	}
 
