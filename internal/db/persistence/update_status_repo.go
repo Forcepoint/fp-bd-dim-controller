@@ -82,7 +82,9 @@ func (u *UpdateStatusRepo) GetAll(receiver []structs.UpdateStatus) error {
 }
 
 func (u *UpdateStatusRepo) GetAllWithStatusForModule(status structs.Status, moduleId int64, safe bool) (receiver []int64, err error) {
-	err = u.db.Select(&receiver, fmt.Sprintf("SELECT update_batch_id FROM %s WHERE safe = ? status = ? AND module_metadata_id = ? ORDER BY created_at DESC;", UpdateStatusTable), safe, status.String(), moduleId)
+	err = u.db.Select(&receiver, fmt.Sprintf("SELECT us.update_batch_id FROM %s as us"+
+		" inner join list_elements le on us.update_batch_id = le.update_batch_id"+
+		" AND le.safe = ? WHERE status = ? AND module_metadata_id = ?;", UpdateStatusTable), safe, status.String(), moduleId)
 	return
 }
 
