@@ -86,7 +86,6 @@ func (t *DataPusher) push() {
 
 		// Get batch IDs for the safelist items that have not been pushed to this module before
 		safelistBatchIds, err := unpushedBatchIds(module.ID, true, acceptedTypes, t.dao.ListElementRepo)
-
 		if err != nil {
 			t.logger.SystemLogger.Error(err, "error retrieving batch ids for module")
 			return
@@ -109,13 +108,15 @@ func (t *DataPusher) push() {
 			}
 		}
 
-		// Check if there are any failed batches for the current module and if so, query them and push them
-		err = pushFailedBatches(t.dao, module, acceptedTypes, t.logger)
-
-		if err != nil {
-			t.logger.SystemLogger.Error(err, "error pushing failed batches")
-			continue
-		}
+		go func(moduleData structs2.ModuleMetadata, types []structs.ElementType) {
+			time.Sleep(60 * time.Second)
+			// Check if there are any failed batches for the current module and if so, query them and push them
+			err = pushFailedBatches(t.dao, moduleData, types, t.logger)
+			if err != nil {
+				t.logger.SystemLogger.Error(err, "error pushing failed batches")
+			}
+			return
+		}(module, acceptedTypes)
 	}
 }
 
