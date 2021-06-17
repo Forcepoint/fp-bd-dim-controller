@@ -5,6 +5,7 @@ import (
 )
 
 type Status string
+type UpdateType string
 type ElementType string
 
 const (
@@ -13,6 +14,9 @@ const (
 	FAILED     Status = "failed"
 	INCOMPLETE Status = "incomplete"
 	NEW        Status = "new"
+
+	ADD    UpdateType = "add"
+	DELETE UpdateType = "delete"
 
 	IP     ElementType = "IP"
 	DOMAIN ElementType = "DOMAIN"
@@ -25,9 +29,11 @@ func (s Status) String() string {
 }
 
 type ProcessedItems struct {
-	SafeList bool          `json:"safe_list"`
-	Items    []ListElement `json:"items"`
-	BatchId  int64         `json:"batch_id"`
+	UpdateType UpdateType    `json:"update_type"`
+	SafeList   bool          `json:"safe_list"`
+	Items      []ListElement `json:"items"`
+	Item       ListElement   `json:"item"`
+	BatchId    int64         `json:"batch_id"`
 }
 
 type PaginatedElements struct {
@@ -65,6 +71,7 @@ type UpdateStatus struct {
 	DeletedAt        *time.Time `json:"deleted_at" db:"deleted_at"`
 	ServiceName      string     `json:"service_name" db:"service_name"`
 	Status           Status     `json:"status"`
+	UpdateType       UpdateType `json:"update_type" db:"update_type"`
 	UpdateBatchId    int64      `json:"update_batch_id" db:"update_batch_id"`
 	ModuleMetadataId int64      `json:"module_metadata_id" db:"module_metadata_id"`
 }

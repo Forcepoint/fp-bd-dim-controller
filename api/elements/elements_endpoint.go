@@ -14,7 +14,7 @@ import (
 	"strconv"
 )
 
-// PageSize defines the number of results to return to the client
+// DefaultPageSize defines the number of results to return to the client
 const (
 	DefaultPageSize = 20
 )
@@ -98,7 +98,7 @@ func Handler(pusher queue.Pusher, dao *persistence.DataAccessObject, logger *str
 				util.ReturnHTTPStatus(w, http.StatusNotAcceptable, "could not decode json into entity")
 				return
 			}
-			dao.ListElementRepo.DeleteByValue(item.Value)
+			queue.Delete(item, pusher, dao)
 			util.ReturnHTTPStatus(w, http.StatusOK, "success")
 		}
 		return

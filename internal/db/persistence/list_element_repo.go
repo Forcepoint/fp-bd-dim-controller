@@ -162,13 +162,14 @@ func (l *ListElementRepo) UpdateListElement(item structs.ListElement) error {
 }
 
 func (l *ListElementRepo) DeleteByValue(value string) {
-	smt := fmt.Sprintf(`DELETE FROM %s WHERE value = ?`, ElementsTable)
+	now := time.Now()
+	smt := fmt.Sprintf(`UPDATE %s SET deleted_at = ? WHERE value = ?`, ElementsTable)
 	tx, err := l.db.Begin()
 	if err != nil {
 		l.log.SystemLogger.Error(err, "Error starting transaction to delete list element")
 		return
 	}
-	_, err = tx.Exec(smt, value)
+	_, err = tx.Exec(smt, now, value)
 	if err != nil {
 		l.log.SystemLogger.Error(err, "Error deleting list element, rolling back")
 		err = tx.Rollback()
@@ -189,12 +190,17 @@ func (l *ListElementRepo) GetById(id int) (receiver []structs.ListElement, err e
 }
 
 func (l *ListElementRepo) GetAll() (receiver []structs.ListElement, err error) {
-	err = l.db.Select(&receiver, fmt.Sprintf("SELECT * FROM %s ORDER BY created_at DESC;", ElementsTable))
+	err = l.db.Select(&receiver, fmt.Sprintf("SELECT * FROM %s WHERE deleted_at IS NULL ORDER BY created_at DESC;", ElementsTable))
+	return
+}
+
+func (l *ListElementRepo) GetAllDeleted() (receiver []structs.ListElement, err error) {
+	err = l.db.Select(&receiver, fmt.Sprintf("SELECT * FROM %s WHERE deleted_at IS NOT NULL ORDER BY created_at DESC;", ElementsTable))
 	return
 }
 
 func (l *ListElementRepo) GetAllByBatchId(batchId int64, types []structs.ElementType) (receiver []structs.ListElement, err error) {
-	smt := fmt.Sprintf("SELECT * FROM %s WHERE update_batch_id = ? AND type IN (?) ORDER BY created_at DESC;", ElementsTable)
+	smt := fmt.Sprintf("SELECT * FROM %s WHERE update_batch_id = ? AND type IN (?) AND deleted_at IS NULL ORDER BY created_at DESC;", ElementsTable)
 
 	query, args, err := sqlx.In(smt, batchId, types)
 
@@ -209,37 +215,37 @@ func (l *ListElementRepo) GetAllByBatchId(batchId int64, types []structs.Element
 }
 
 func (l *ListElementRepo) GetAllPaginated(offset, pageSize int, safe bool) (receiver []structs.ListElement, err error) {
-	err = l.db.Select(&receiver, fmt.Sprintf("SELECT * FROM %s WHERE safe = ? ORDER BY created_at DESC LIMIT ? OFFSET ?;", ElementsTable), safe, pageSize, offset)
+	err = l.db.Select(&receiver, fmt.Sprintf("SELECT * FROM %s WHERE safe = ? AND deleted_at IS NULL ORDER BY created_at DESC LIMIT ? OFFSET ?;", ElementsTable), safe, pageSize, offset)
 	return
 }
 
 func (l *ListElementRepo) GetAllLike(offset, pageSize int, searchTerm string, safe bool) (receiver []structs.ListElement, err error) {
-	err = l.db.Select(&receiver, fmt.Sprintf("SELECT * FROM %s WHERE value LIKE ? AND safe = ? ORDER BY created_at DESC LIMIT ? OFFSET ?;", ElementsTable), "%"+searchTerm+"%", safe, pageSize, offset)
+	err = l.db.Select(&receiver, fmt.Sprintf("SELECT * FROM %s WHERE value LIKE ? AND safe = ? AND deleted_at IS NULL ORDER BY created_at DESC LIMIT ? OFFSET ?;", ElementsTable), "%"+searchTerm+"%", safe, pageSize, offset)
 	return
 }
 
 func (l *ListElementRepo) GetAllEquals(searchTerm string) (receiver structs.ListElement, err error) {
-	err = l.db.Get(&receiver, fmt.Sprintf("SELECT * FROM %s WHERE value = ?;", ElementsTable), searchTerm)
+	err = l.db.Get(&receiver, fmt.Sprintf("SELECT * FROM %s WHERE value = ? AND deleted_at IS NULL;", ElementsTable), searchTerm)
 	return
 }
 
 func (l *ListElementRepo) GetTotalCountWhereLike(safe bool, like string) (total int64, err error) {
-	err = l.db.Get(&total, fmt.Sprintf("SELECT count(1) FROM %s WHERE value LIKE ? AND safe = ?", ElementsTable), "%"+like+"%", safe)
+	err = l.db.Get(&total, fmt.Sprintf("SELECT count(1) FROM %s WHERE value LIKE ? AND safe = ? AND deleted_at IS NULL", ElementsTable), "%"+like+"%", safe)
 	return
 }
 
 func (l *ListElementRepo) GetTotalCount(safe bool) (total int64, err error) {
-	err = l.db.Get(&total, fmt.Sprintf("SELECT count(1) FROM %s WHERE safe = ?", ElementsTable), safe)
+	err = l.db.Get(&total, fmt.Sprintf("SELECT count(1) FROM %s WHERE safe = ? AND deleted_at IS NULL", ElementsTable), safe)
 	return
 }
 
 func (l *ListElementRepo) GetTotalElementCount() (total int64, err error) {
-	err = l.db.Get(&total, fmt.Sprintf("SELECT count(1) FROM %s", ElementsTable))
+	err = l.db.Get(&total, fmt.Sprintf("SELECT count(1) FROM %s WHERE deleted_at IS NULL", ElementsTable))
 	return
 }
 
 func (l *ListElementRepo) GetLatestUpdate(svcName string) (receiver structs.ListElement, err error) {
-	err = l.db.Get(&receiver, fmt.Sprintf("SELECT * FROM %s WHERE service_name = ? ORDER BY created_at DESC LIMIT 1;", ElementsTable), svcName)
+	err = l.db.Get(&receiver, fmt.Sprintf("SELECT * FROM %s WHERE service_name = ? AND deleted_at IS NULL ORDER BY created_at DESC LIMIT 1;", ElementsTable), svcName)
 	return
 }
 

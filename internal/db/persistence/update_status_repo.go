@@ -28,13 +28,13 @@ func (u *UpdateStatusRepo) InsertUpdateStatus(item structs.UpdateStatus) {
 
 	now := time.Now()
 
-	smt := fmt.Sprintf(`INSERT INTO %s (id, created_at, updated_at, deleted_at, service_name, status, update_batch_id, module_metadata_id) VALUES (?,?,?,?,?,?,?,?)`, UpdateStatusTable)
+	smt := fmt.Sprintf(`INSERT INTO %s (id, created_at, updated_at, deleted_at, service_name, status, update_batch_id, module_metadata_id, update_type) VALUES (?,?,?,?,?,?,?,?,?)`, UpdateStatusTable)
 	tx, err := u.db.Begin()
 	if err != nil {
 		u.log.SystemLogger.Error(err, "Error starting transaction to insert update status")
 		return
 	}
-	_, err = tx.Exec(smt, item.ID, now, now, item.DeletedAt, item.ServiceName, item.Status, item.UpdateBatchId, item.ModuleMetadataId)
+	_, err = tx.Exec(smt, item.ID, now, now, item.DeletedAt, item.ServiceName, item.Status, item.UpdateBatchId, item.ModuleMetadataId, item.UpdateType)
 	if err != nil {
 		tx.Rollback()
 		u.log.SystemLogger.Error(err, "Error inserting update status, rolling back")

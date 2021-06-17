@@ -15,6 +15,14 @@ const MaxBatchSize = 5000
 var ErrEmptySlice = errors.New("empty slice")
 var ErrInvalidFormat = errors.New("invalid format")
 
+func Delete(item structs.ListElement, pusher Pusher, dao *persistence.DataAccessObject) {
+	dao.ListElementRepo.DeleteByValue(item.Value)
+	go func() {
+		pusher.PushDeletes(item)
+	}()
+	return
+}
+
 func AddOne(items []structs.ListElement, pusher Pusher, dao *persistence.DataAccessObject, logger *structs2.AppLogger) error {
 	if len(items) == 0 {
 		return ErrEmptySlice
@@ -39,7 +47,7 @@ func AddOne(items []structs.ListElement, pusher Pusher, dao *persistence.DataAcc
 	}
 	err = dao.ListElementRepo.InsertListElement(items[0])
 	go func() {
-		pusher.push()
+		pusher.PushUpdates()
 	}()
 	return err
 }
@@ -68,7 +76,7 @@ func AddToQueue(items []structs.ListElement, pusher Pusher, dao *persistence.Dat
 		dao.ListElementRepo.BatchInsertListElements(chunk)
 	}
 	go func() {
-		pusher.push()
+		pusher.PushUpdates()
 	}()
 }
 

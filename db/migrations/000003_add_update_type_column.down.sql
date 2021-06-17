@@ -1,0 +1,1 @@
+alter table update_statuses drop column update_type;

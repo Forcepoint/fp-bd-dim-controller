@@ -15,7 +15,8 @@ import (
 )
 
 type Pusher interface {
-	push()
+	PushUpdates()
+	PushDeletes(item structs.ListElement)
 }
 
 type DataPusher struct {
@@ -23,14 +24,70 @@ type DataPusher struct {
 	logger *structs3.AppLogger
 }
 
-func NewDataPusher(dao *persistence.DataAccessObject, logger *structs3.AppLogger) *DataPusher {
+func NewDataPusher(dao *persistence.DataAccessObject, logger *structs3.AppLogger) Pusher {
 	return &DataPusher{
 		dao:    dao,
 		logger: logger,
 	}
 }
 
-func (t *DataPusher) push() {
+func (t *DataPusher) PushDeletes(item structs.ListElement) {
+	acceptedTypesMap := make(map[structs.ElementType]struct{})
+	// Enter function, get a list of all modules capable of consuming intelligence
+	modules, err := egressModules(t.dao.ModuleMetadataRepo)
+	if err != nil {
+		t.logger.SystemLogger.Error(err, "error getting egress modules")
+		return
+	}
+	// Iterate over the modules and check if they are up and configured, if not skip them to avoid congesting the network unnecessarily
+	for _, module := range modules {
+		if !module.Configured {
+			continue
+		}
+		// If the module is not up and healthy, skip it and move on to the next one in the list
+		if !health.IsUp(module.ModuleServiceName, module.InternalPort) {
+			t.logger.UserLogger.Debug(fmt.Sprintf("%s is not up, cannot push", module.ModuleServiceName))
+			continue
+		}
+		// Get a list of the accepted element types for the specific module (IP, Domain, Range, etc.)
+		acceptedTypes, err := t.dao.ElementTypeRepo.GetAllForModule(module.ID)
+		if err != nil {
+			t.logger.SystemLogger.Error(err, "error retrieving types for module")
+			return
+		}
+		// Add the accepted elements to a map for quick lookup when sending patches
+		for _, val := range acceptedTypes {
+			acceptedTypesMap[val] = struct{}{}
+		}
+		// if the element type isn't in the accepted types for this module then return
+		if _, ok := acceptedTypesMap[item.Type]; !ok {
+			return
+		}
+
+		wrappedBatch := structs.ProcessedItems{UpdateType: structs.DELETE, SafeList: item.Safe, Item: item, BatchId: item.UpdateBatchId}
+		resp, err := pushData(module.ModuleServiceName, module.InternalPort, wrappedBatch, t.logger)
+		if err != nil || resp.StatusCode != http.StatusOK {
+			t.dao.UpdateStatusRepo.InsertUpdateStatus(structs.UpdateStatus{
+				ServiceName:      module.ModuleServiceName,
+				UpdateType:       structs.DELETE,
+				Status:           structs.FAILED,
+				UpdateBatchId:    item.ID,
+				ModuleMetadataId: module.ID,
+			})
+			return
+		}
+
+		t.dao.UpdateStatusRepo.InsertUpdateStatus(structs.UpdateStatus{
+			ServiceName:      module.ModuleServiceName,
+			UpdateType:       structs.DELETE,
+			Status:           structs.SUCCESS,
+			UpdateBatchId:    item.ID,
+			ModuleMetadataId: module.ID,
+		})
+	}
+}
+
+func (t *DataPusher) PushUpdates() {
 	// Enter function, get a list of all modules capable of consuming intelligence
 	modules, err := egressModules(t.dao.ModuleMetadataRepo)
 
@@ -218,7 +275,7 @@ func queryBatchAndPush(batchId int64, module structs2.ModuleMetadata,
 
 	logger.UserLogger.Info(fmt.Sprintf("Pushing to %s", module.ModuleServiceName))
 
-	wrappedBatch := structs.ProcessedItems{SafeList: safe, Items: updateBatch, BatchId: batchId}
+	wrappedBatch := structs.ProcessedItems{UpdateType: structs.ADD, SafeList: safe, Items: updateBatch, BatchId: batchId}
 
 	resp, err := pushData(module.ModuleServiceName, module.InternalPort, wrappedBatch, logger)
 
@@ -226,6 +283,7 @@ func queryBatchAndPush(batchId int64, module structs2.ModuleMetadata,
 		if !failed {
 			updateStatusRepo.InsertUpdateStatus(structs.UpdateStatus{
 				ServiceName:      module.ModuleServiceName,
+				UpdateType:       structs.ADD,
 				Status:           structs.FAILED,
 				UpdateBatchId:    batchId,
 				ModuleMetadataId: module.ID,
@@ -240,6 +298,7 @@ func queryBatchAndPush(batchId int64, module structs2.ModuleMetadata,
 		if !failed {
 			updateStatusRepo.InsertUpdateStatus(structs.UpdateStatus{
 				ServiceName:      module.ModuleServiceName,
+				UpdateType:       structs.ADD,
 				Status:           structs.FAILED,
 				UpdateBatchId:    batchId,
 				ModuleMetadataId: module.ID,
@@ -250,6 +309,7 @@ func queryBatchAndPush(batchId int64, module structs2.ModuleMetadata,
 		if !failed {
 			updateStatusRepo.InsertUpdateStatus(structs.UpdateStatus{
 				ServiceName:      module.ModuleServiceName,
+				UpdateType:       structs.ADD,
 				Status:           structs.PENDING,
 				UpdateBatchId:    batchId,
 				ModuleMetadataId: module.ID,
@@ -257,6 +317,7 @@ func queryBatchAndPush(batchId int64, module structs2.ModuleMetadata,
 		} else {
 			updateStatusRepo.UpdateUpdateStatus(structs.UpdateStatus{
 				ServiceName:      module.ModuleServiceName,
+				UpdateType:       structs.ADD,
 				Status:           structs.PENDING,
 				UpdateBatchId:    batchId,
 				ModuleMetadataId: module.ID,
