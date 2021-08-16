@@ -1,0 +1,1 @@
+alter table list_elements modify value varchar(500) not null;

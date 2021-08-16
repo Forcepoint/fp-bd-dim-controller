@@ -24,6 +24,7 @@ const (
 	DOMAIN ElementType = "DOMAIN"
 	URL    ElementType = "URL"
 	RANGE  ElementType = "RANGE"
+	SNORT  ElementType = "SNORT"
 )
 
 type ContainerDetails struct {

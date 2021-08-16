@@ -22,6 +22,7 @@ const (
 	DOMAIN ElementType = "DOMAIN"
 	URL    ElementType = "URL"
 	RANGE  ElementType = "RANGE"
+	SNORT  ElementType = "SNORT"
 )
 
 func (s Status) String() string {

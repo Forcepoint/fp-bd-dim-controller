@@ -269,18 +269,22 @@ func (l *ListElementRepo) GetStats(serviceName string) (result structs2.Stats) {
 	if serviceName == "" {
 		smt = fmt.Sprintf(`SELECT 
 				count(1) 						AS total,
-				sum(IF(type = 'IP', 1, 0))     AS ip,
-				sum(IF(type = 'DOMAIN', 1, 0)) AS domain,
-				sum(IF(type = 'URL', 1, 0))    AS url
+				sum(IF(type = 'IP', 1, 0))       AS ip,
+				sum(IF(type = 'DOMAIN', 1, 0))   AS domain,
+				sum(IF(type = 'URL', 1, 0))      AS url,
+				sum(IF(type = 'RANGE', 1, 0))    AS ip_range,
+				sum(IF(type = 'SNORT', 1, 0))    AS snort
 				FROM %s
 				GROUP BY service_name is not null`, ElementsTable)
 
 	} else {
 		smt = fmt.Sprintf(`SELECT 
 				count(1) 						AS total,
-				sum(IF(type = 'IP', 1, 0))     AS ip,
-				sum(IF(type = 'DOMAIN', 1, 0)) AS domain,
-				sum(IF(type = 'URL', 1, 0))    AS url
+				sum(IF(type = 'IP', 1, 0))       AS ip,
+				sum(IF(type = 'DOMAIN', 1, 0))   AS domain,
+				sum(IF(type = 'URL', 1, 0))      AS url,
+				sum(IF(type = 'RANGE', 1, 0))    AS ip_range,
+				sum(IF(type = 'SNORT', 1, 0))    AS snort
 				FROM %s
 				WHERE service_name = '%s'
 				GROUP BY service_name`, ElementsTable, serviceName)
